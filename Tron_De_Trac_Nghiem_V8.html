@@ -696,7 +696,7 @@
       p2.forEach((c, idx) => {
         c.CauSo = "P2_"+(idx+1); c.MaDe = maDe;
         if(sP2){
-          let arrAns = (c.DapAnDung||"").split(""); if(arrAns.length<4) arrAns=["Đ","Đ","Đ","Đ"];
+          let arrAns = (c.DapAnDung||"").replace(/-/g, '').split(""); if(arrAns.length<4) arrAns=["Đ","Đ","Đ","Đ"];
           let opts = [{t:c.DapAnA, a:arrAns[0]},{t:c.DapAnB, a:arrAns[1]},{t:c.DapAnC, a:arrAns[2]},{t:c.DapAnD, a:arrAns[3]}];
           shuffleArray(opts);
           c.DapAnA=opts[0].t; c.DapAnB=opts[1].t; c.DapAnC=opts[2].t; c.DapAnD=opts[3].t;
