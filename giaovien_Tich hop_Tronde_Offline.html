@@ -191,7 +191,14 @@
         </div>
 
         <div id="dieuHanh" class="tab-content">
-            <div class="input-group"><label>Nhập Mã Phòng Thi cần thao tác:</label><input type="text" id="ctrlMaPhong" value="Phòng 1" style="border: 2px solid #1a73e8; font-weight: bold;"></div>
+            <div class="input-group"><label>Nhập Mã Phòng Thi cần thao tác:</label><div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+    <select id="ctrlMaPhong" style="flex: 1; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; background: #fff;">
+        <option value="">-- Bấm để chọn Mã Phòng --</option>
+    </select>
+    <button onclick="taiDanhSachPhong()" style="padding: 10px 15px; background: #1f2937; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; min-width: 120px;">
+        🔄 Tải lại
+    </button>
+</div></div>
             <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                 <div class="input-group" style="flex: 2; background: #e8f0fe; padding: 15px; border-radius: 8px; border-left: 5px solid #1a73e8; margin-bottom: 0;"><label style="color: #1a73e8;">Tên Đợt Kiểm Tra (Tùy chọn):</label><input type="text" id="ctrlTenDot" placeholder="VD: Kiểm tra 15 phút..." style="border-color: #1a73e8;"></div>
                 <div class="input-group" style="flex: 1; background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; margin-bottom: 0;"><label style="color: #27ae60;">Thời gian thi (phút):</label><input type="number" id="ctrlThoiGian" value="15" min="1" style="border-color: #27ae60;"></div>
@@ -217,17 +224,20 @@
 
         <div id="thongKe" class="tab-content">
             <div style="display:flex; gap:10px; align-items:flex-end;">
-                <div class="input-group" style="flex: 2;"><label>Nhập Mã Phòng Thi cần xem:</label><input type="text" id="dashMaPhong" value="Phòng 1"></div>
-                <div class="input-group" style="flex: 1; text-align:right;">
-                    <label style="color:#1a73e8; font-weight:bold; font-size:14px; cursor:pointer;">
-                        Tự động làm mới (5s)
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()">
-                            <span class="slider"></span>
-                        </label>
-                    </label>
-                </div>
-            </div>
+    <div class="input-group" style="flex: 2;">
+        <label>Nhập Mã Phòng Thi cần xem:</label>
+        <input type="text" id="dashMaPhong" value="Phòng 1" placeholder="Nhập tên phòng (VD: Phòng 1)" style="width: 100%; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; box-sizing: border-box;">
+    </div>
+    <div class="input-group" style="flex: 1; text-align:right;">
+        <label style="color:#1a73e8; font-weight:bold; font-size:14px; cursor:pointer;">
+            Tự động làm mới (5s)
+            <label class="toggle-switch">
+                <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()">
+                <span class="slider"></span>
+            </label>
+        </label>
+    </div>
+</div>
             <div class="btn-group" style="margin-top:0;">
                 <button style="background: #f39c12;" onclick="fetchDashboard()">🔄 Cập nhật Bảng Điểm</button>
                 <button style="background: #16a085;" onclick="xuatExcel()">📥 Tải Excel</button>
@@ -644,6 +654,40 @@
         function filterStudents(filter) { currentStudentFilter = filter; renderSubTabsHS(); renderStudentTable(); }
         function renderStudentTable() { let filtered = allStudents; if(currentStudentFilter !== 'TatCa') { filtered = allStudents.filter(s => s.Lop === currentStudentFilter); } let html = ""; if(filtered.length === 0) html = '<tr><td colspan="5">Không có dữ liệu.</td></tr>'; else { filtered.forEach(hs => { let statusHTML = hs.TrangThai === "DaDoi" ? `<span style="color:green;font-weight:bold;">Đã đổi</span>` : `<span style="color:red;">Mặc định</span>`; html += `<tr><td><b>${hs.MaHS}</b></td><td>${hs.HoTen}</td><td>${hs.Lop}</td><td>${statusHTML}</td><td><button style="background:#e74c3c; padding:5px 10px; border:none; border-radius:4px; color:white; cursor:pointer;" onclick="resetPass('${hs.MaHS}')">Khôi phục</button></td></tr>`; }); } document.getElementById('hsBody').innerHTML = html; }
         function resetPass(maHS) { if(!confirm(`Khôi phục MK ID ${maHS}?`)) return; safePost({ action: "reset_pass", maHS: maHS }).then(data => { if(data.status === "success") fetchStudents(); }); }
+	// --- HÀM TẢI DANH SÁCH PHÒNG TỪ MÁY CHỦ ---
+function taiDanhSachPhong() {
+    let selectBox = document.getElementById("ctrlMaPhong");
+    if(!selectBox) return;
+
+    // Đổi trạng thái hiển thị thành "Đang tải"
+    selectBox.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
+
+    // ĐÃ LẮP RÁP CHUẨN TÊN BIẾN CỦA BẠN: APPS_SCRIPT_URL
+    fetch(APPS_SCRIPT_URL + "?action=getDanhSachPhong")
+        .then(res => res.json())
+        .then(data => {
+            selectBox.innerHTML = '<option value="">-- Chọn Mã Phòng Thi --</option>';
+            
+            if(data.status === "success" && data.danhSachPhong && data.danhSachPhong.length > 0) {
+                // Đổ dữ liệu vào ô xổ xuống
+                data.danhSachPhong.forEach(phong => {
+                    let opt = document.createElement("option");
+                    opt.value = phong;
+                    opt.innerText = phong;
+                    selectBox.appendChild(opt);
+                });
+            } else {
+                selectBox.innerHTML = '<option value="">⚠️ Chưa có phòng thi nào</option>';
+            }
+        })
+        .catch(err => {
+            selectBox.innerHTML = '<option value="">❌ Lỗi kết nối mạng!</option>';
+            console.error(err);
+        });
+}
+
+// Tự động gọi hàm này khi vừa mở trang web
+window.addEventListener('load', taiDanhSachPhong);
     </script>
 </body>
 </html>
