@@ -540,8 +540,8 @@
     if (idxP2 !== -1 && idxP3 !== -1) { p1H = htmlText.substring(0, idxP2); p2H = htmlText.substring(idxP2, idxP3); p3H = htmlText.substring(idxP3); } 
     else if (idxP2 !== -1) { p1H = htmlText.substring(0, idxP2); p2H = htmlText.substring(idxP2); }
 
-    const cleanContent = h => (h||"").replace(/<\/?(p|div|ul|ol|li|span|font)[^>]*>/gi, '<br>').replace(/(<br>\s*)+/gi, '<br>').replace(/^<br>|<br>$/gi, '').trim();
-    const cleanAns = h => (h||"").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanContent = h => (h||"").replace(/<\/?(p|div|ul|ol|li|span|font)[^>]*>/gi, '<br>').replace(/(<br>\s*)+/gi, '<br>').replace(/^<br>|<br>$/gi, '').replace(/<[^>]*$/g, '').trim();
+    const cleanAns = h => (h||"").replace(/<[^>]+>/g, ' ').replace(/<[^>]*$/g, '').replace(/\s+/g, ' ').trim();
     
     let questions = [];
     const detectStyled = document.getElementById("optDetectStyledAnswer").checked;
