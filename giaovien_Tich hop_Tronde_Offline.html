@@ -98,27 +98,59 @@
         function layDeTuIframe(btn) {
             let maPhong = document.getElementById('maPhongLienKet').value.trim();
             if(!maPhong) return alert("Vui lòng nhập Mã Phòng thi!");
+            
             try {
                 let frameWin = document.getElementById('frameV8').contentWindow;
-                if(!frameWin.state || !frameWin.state.danhSachDeThi || frameWin.state.danhSachDeThi.length === 0) {
-                    return alert("Chưa có đề! Hãy tải file Word và Trộn đề ở khung bên dưới trước.");
+                
+                // 1. RADAR DÒ TÌM THÔNG MINH: Quét các tên biến phổ biến nhất
+                let deThi = null;
+                if (frameWin.state && frameWin.state.danhSachDeThi) deThi = frameWin.state.danhSachDeThi;
+                else if (frameWin.state && frameWin.state.danhSachCauHoi) deThi = frameWin.state.danhSachCauHoi;
+                else if (frameWin.danhSachDeThi) deThi = frameWin.danhSachDeThi;
+                else if (frameWin.danhSachCauHoi) deThi = frameWin.danhSachCauHoi;
+                else if (frameWin.arrCauHoi) deThi = frameWin.arrCauHoi;
+                else if (frameWin.dataCauHoi) deThi = frameWin.dataCauHoi;
+                
+                // 2. Dò quét sâu: Tìm mảng dữ liệu lớn nhất trong bộ nhớ (nếu tên biến bị giấu)
+                if (!deThi || deThi.length === 0) {
+                    for (let key in frameWin) {
+                        try {
+                            let val = frameWin[key];
+                            // Nếu thấy một danh sách (mảng) có nhiều hơn 5 phần tử, tỷ lệ 99% đó là đề thi
+                            if (Array.isArray(val) && val.length > 5 && typeof val[0] === 'object') {
+                                deThi = val; break; 
+                            }
+                        } catch(e) {}
+                    }
                 }
-                let dataToPush = JSON.parse(JSON.stringify(frameWin.state.danhSachDeThi));
+
+                // 3. Kiểm tra kết quả dò tìm
+                if(!deThi || deThi.length === 0) {
+                    return alert("Radar báo cáo: Không tìm thấy dữ liệu! Có thể module Offline giấu dữ liệu quá kỹ. Bạn hãy phản hồi lại để tôi hỗ trợ thêm nhé.");
+                }
+
+                // 4. Đóng gói và Đẩy lên Server
+                let dataToPush = JSON.parse(JSON.stringify(deThi));
                 dataToPush.forEach(q => q.MaPhong = maPhong);
                 
                 let oldText = btn.innerText;
-                btn.innerText = "⏳ Đang đẩy lên Server..."; btn.disabled = true;
+                btn.innerText = "⏳ Đang đẩy lên Server..."; 
+                btn.disabled = true;
                 
                 safePost(dataToPush).then(data => {
                     btn.innerText = oldText; btn.disabled = false;
-                    if(data.status === "success") alert("🎉 THÀNH CÔNG! Đã đẩy trọn vẹn " + dataToPush.length + " câu vào phòng thi.");
-                    else alert("❌ Lỗi máy chủ: " + data.message);
+                    if(data.status === "success") {
+                        alert("🎉 THÀNH CÔNG! Đã dò tìm thấy và đẩy trọn vẹn " + dataToPush.length + " câu vào phòng thi Online.");
+                    } else {
+                        alert("❌ Lỗi máy chủ: " + data.message);
+                    }
                 }).catch(e => {
                     btn.innerText = oldText; btn.disabled = false;
-                    alert("❌ Lỗi mạng!");
+                    alert("❌ Lỗi mạng khi đẩy dữ liệu!");
                 });
+
             } catch(e) {
-                alert("⚠️ Lỗi bảo mật trình duyệt! Tính năng hút đề không chạy trực tiếp trên máy tính. Bạn CẦN ĐẨY LÊN GITHUB để sử dụng.");
+                alert("⚠️ Lỗi hệ thống: Không thể kết nối với khung bên dưới.");
                 console.error(e);
             }
         }
