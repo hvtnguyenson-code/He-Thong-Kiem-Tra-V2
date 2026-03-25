@@ -226,7 +226,9 @@
             <div style="display:flex; gap:10px; align-items:flex-end;">
     <div class="input-group" style="flex: 2;">
         <label>Nhập Mã Phòng Thi cần xem:</label>
-        <input type="text" id="dashMaPhong" value="Phòng 1" placeholder="Nhập tên phòng (VD: Phòng 1)" style="width: 100%; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; box-sizing: border-box;">
+        <select id="dashMaPhong" style="width: 100%; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; box-sizing: border-box; background: #fff;">
+    <option value="">-- Bấm để chọn Mã Phòng --</option>
+</select>
     </div>
     <div class="input-group" style="flex: 1; text-align:right;">
         <label style="color:#1a73e8; font-weight:bold; font-size:14px; cursor:pointer;">
@@ -656,32 +658,38 @@
         function resetPass(maHS) { if(!confirm(`Khôi phục MK ID ${maHS}?`)) return; safePost({ action: "reset_pass", maHS: maHS }).then(data => { if(data.status === "success") fetchStudents(); }); }
 	// --- HÀM TẢI DANH SÁCH PHÒNG TỪ MÁY CHỦ ---
 function taiDanhSachPhong() {
-    let selectBox = document.getElementById("ctrlMaPhong");
-    if(!selectBox) return;
+    let selectBoxTab2 = document.getElementById("ctrlMaPhong"); // Ô Dropdown Tab 2
+    let selectBoxTab3 = document.getElementById("dashMaPhong"); // Ô Dropdown Tab 3 (mới đổi)
 
-    // Đổi trạng thái hiển thị thành "Đang tải"
-    selectBox.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
+    // 1. Đổi trạng thái hiển thị thành "Đang tải" cho CẢ 2 Ô
+    if(selectBoxTab2) selectBoxTab2.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
+    if(selectBoxTab3) selectBoxTab3.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
 
-    // ĐÃ LẮP RÁP CHUẨN TÊN BIẾN CỦA BẠN: APPS_SCRIPT_URL
+    // 2. Gọi API lấy dữ liệu (Sử dụng đúng biến APPS_SCRIPT_URL của bạn)
     fetch(APPS_SCRIPT_URL + "?action=getDanhSachPhong")
         .then(res => res.json())
         .then(data => {
-            selectBox.innerHTML = '<option value="">-- Chọn Mã Phòng Thi --</option>';
+            let defaultOpt = '<option value="">-- Chọn Mã Phòng Thi --</option>';
+            if(selectBoxTab2) selectBoxTab2.innerHTML = defaultOpt;
+            if(selectBoxTab3) selectBoxTab3.innerHTML = defaultOpt;
             
             if(data.status === "success" && data.danhSachPhong && data.danhSachPhong.length > 0) {
-                // Đổ dữ liệu vào ô xổ xuống
+                // 3. Đổ dữ liệu vào CẢ 2 Ô xổ xuống
                 data.danhSachPhong.forEach(phong => {
-                    let opt = document.createElement("option");
-                    opt.value = phong;
-                    opt.innerText = phong;
-                    selectBox.appendChild(opt);
+                    let optHtml = `<option value="${phong}">${phong}</option>`;
+                    if(selectBoxTab2) selectBoxTab2.innerHTML += optHtml;
+                    if(selectBoxTab3) selectBoxTab3.innerHTML += optHtml;
                 });
             } else {
-                selectBox.innerHTML = '<option value="">⚠️ Chưa có phòng thi nào</option>';
+                let emptyOpt = '<option value="">⚠️ Chưa có phòng thi nào</option>';
+                if(selectBoxTab2) selectBoxTab2.innerHTML = emptyOpt;
+                if(selectBoxTab3) selectBoxTab3.innerHTML = emptyOpt;
             }
         })
         .catch(err => {
-            selectBox.innerHTML = '<option value="">❌ Lỗi kết nối mạng!</option>';
+            let errorOpt = '<option value="">❌ Lỗi kết nối mạng!</option>';
+            if(selectBoxTab2) selectBoxTab2.innerHTML = errorOpt;
+            if(selectBoxTab3) selectBoxTab3.innerHTML = errorOpt;
             console.error(err);
         });
 }
