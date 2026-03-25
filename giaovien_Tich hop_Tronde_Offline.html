@@ -201,7 +201,7 @@
 </div></div>
             <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                 <div class="input-group" style="flex: 2; background: #e8f0fe; padding: 15px; border-radius: 8px; border-left: 5px solid #1a73e8; margin-bottom: 0;"><label style="color: #1a73e8;">Tên Đợt Kiểm Tra (Tùy chọn):</label><input type="text" id="ctrlTenDot" placeholder="VD: Kiểm tra 15 phút..." style="border-color: #1a73e8;"></div>
-                <div class="input-group" style="flex: 1; background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; margin-bottom: 0;"><label style="color: #27ae60;">Thời gian thi (phút):</label><input type="number" id="ctrlThoiGian" value="15" min="1" style="border-color: #27ae60;"></div>
+                <div class="input-group" style="flex: 1; background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; margin-bottom: 0;"><label style="color: #27ae60;">Thời gian thi (phút):</label><input type="number" id="ctrlThoiGian" value="45" min="1" style="border-color: #27ae60;"></div>
             </div>
             <div class="input-group" style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12;"><label style="color: #d35400;">Giao bài cho Lớp:</label><select id="ctrlDoiTuong" style="border-color: #f39c12; font-weight:bold;"><option value="TatCa">⏳ Đang tải...</option></select></div>
             
@@ -226,7 +226,7 @@
             <div style="display:flex; gap:10px; align-items:flex-end;">
     <div class="input-group" style="flex: 2;">
         <label>Nhập Mã Phòng Thi cần xem:</label>
-        <select id="dashMaPhong" style="width: 100%; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; box-sizing: border-box; background: #fff;">
+        <select id="dashMaPhong" onchange="localStorage.setItem('phongDangXem', this.value); fetchDashboard()" style="width: 100%; padding: 10px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; box-sizing: border-box; background: #fff;">
     <option value="">-- Bấm để chọn Mã Phòng --</option>
 </select>
     </div>
@@ -314,7 +314,11 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tabs > button').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active');
             if(tabId === 'taoDe') { document.getElementById('tab1').classList.add('active'); loadBankMeta(); } if(tabId === 'dieuHanh') { document.getElementById('tab2').classList.add('active'); fetchRadar(); loadMetaData(); } if(tabId === 'thongKe') { document.getElementById('tab3').classList.add('active'); } if(tabId === 'quanLyHS') { document.getElementById('tab4').classList.add('active'); if(allStudents.length===0) fetchStudents(); }
-        }
+	// --- LỆNH TỰ ĐỘNG CẬP NHẬT KHI CHUYỂN TAB ---
+    if (tabId === 'dieuHanh' || tabId === 'thongKe') {
+        taiDanhSachPhong();
+    }        
+	}
         function switchSubTabTaoDe(mode) {
             document.querySelectorAll('.sub-tab-content').forEach(el => el.classList.remove('active')); document.getElementById('btnSubDirect').classList.remove('active'); document.getElementById('btnSubOffline').classList.remove('active'); document.getElementById('btnSubBank').classList.remove('active'); document.getElementById('btnSubMatrix').classList.remove('active'); document.getElementById('btnSubManage').classList.remove('active'); document.getElementById('btnSubOffline').style.borderColor = "#dadce0"; document.getElementById('btnSubOffline').style.color = "#5f6368";
             if(mode === 'direct') { document.getElementById('subTabDirect').classList.add('active'); document.getElementById('btnSubDirect').classList.add('active'); } if(mode === 'offline') { document.getElementById('subTabOffline').classList.add('active'); document.getElementById('btnSubOffline').classList.add('active'); document.getElementById('btnSubOffline').style.borderColor = "#8e44ad"; document.getElementById('btnSubOffline').style.color = "#8e44ad"; } if(mode === 'bank') { document.getElementById('subTabBank').classList.add('active'); document.getElementById('btnSubBank').classList.add('active'); } if(mode === 'matrix') { document.getElementById('subTabMatrix').classList.add('active'); document.getElementById('btnSubMatrix').classList.add('active'); loadBankMeta(); } if(mode === 'manage') { document.getElementById('subTabManage').classList.add('active'); document.getElementById('btnSubManage').classList.add('active'); fetchFullBank(); }
@@ -658,14 +662,12 @@
         function resetPass(maHS) { if(!confirm(`Khôi phục MK ID ${maHS}?`)) return; safePost({ action: "reset_pass", maHS: maHS }).then(data => { if(data.status === "success") fetchStudents(); }); }
 	// --- HÀM TẢI DANH SÁCH PHÒNG TỪ MÁY CHỦ ---
 function taiDanhSachPhong() {
-    let selectBoxTab2 = document.getElementById("ctrlMaPhong"); // Ô Dropdown Tab 2
-    let selectBoxTab3 = document.getElementById("dashMaPhong"); // Ô Dropdown Tab 3 (mới đổi)
+    let selectBoxTab2 = document.getElementById("ctrlMaPhong");
+    let selectBoxTab3 = document.getElementById("dashMaPhong");
 
-    // 1. Đổi trạng thái hiển thị thành "Đang tải" cho CẢ 2 Ô
     if(selectBoxTab2) selectBoxTab2.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
     if(selectBoxTab3) selectBoxTab3.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
 
-    // 2. Gọi API lấy dữ liệu (Sử dụng đúng biến APPS_SCRIPT_URL của bạn)
     fetch(APPS_SCRIPT_URL + "?action=getDanhSachPhong")
         .then(res => res.json())
         .then(data => {
@@ -674,12 +676,23 @@ function taiDanhSachPhong() {
             if(selectBoxTab3) selectBoxTab3.innerHTML = defaultOpt;
             
             if(data.status === "success" && data.danhSachPhong && data.danhSachPhong.length > 0) {
-                // 3. Đổ dữ liệu vào CẢ 2 Ô xổ xuống
+                // 1. Đổ dữ liệu vào CẢ 2 Ô xổ xuống
                 data.danhSachPhong.forEach(phong => {
                     let optHtml = `<option value="${phong}">${phong}</option>`;
                     if(selectBoxTab2) selectBoxTab2.innerHTML += optHtml;
                     if(selectBoxTab3) selectBoxTab3.innerHTML += optHtml;
                 });
+
+                // 2. KHÔI PHỤC TRÍ NHỚ (CODE MỚI)
+                let phongDaLuu = localStorage.getItem('phongDangXem'); // Lấy tên phòng trong bộ nhớ ra
+                // Kiểm tra xem phòng đó có còn tồn tại trong kho không
+                if (phongDaLuu && data.danhSachPhong.includes(phongDaLuu)) { 
+                    if(selectBoxTab3) {
+                        selectBoxTab3.value = phongDaLuu; // Tự động chọn lại phòng đó
+                        fetchDashboard(); // Tự động kéo điểm về luôn
+                    }
+                }
+
             } else {
                 let emptyOpt = '<option value="">⚠️ Chưa có phòng thi nào</option>';
                 if(selectBoxTab2) selectBoxTab2.innerHTML = emptyOpt;
