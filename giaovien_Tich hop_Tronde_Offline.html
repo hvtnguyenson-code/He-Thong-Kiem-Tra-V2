@@ -83,7 +83,7 @@
                 <button style="background: #2c3e50; padding: 10px; color: white; border: none; border-radius: 5px; font-weight: bold; cursor:pointer; width: 100%; margin-top: 10px; display: none;" onclick="xuatBaoCaoWord()" id="btnXuatWordDirect">📥 TẢI BẢN IN DỰ PHÒNG + ĐÁP ÁN</button>
                 <p id="logDirect" style="font-size: 15px; color: #27ae60; margin-top: 15px; text-align: center; font-weight: bold;"></p>
             </div>
-		<div id="subTabOffline" class="sub-tab-content" style="width: 100%; padding: 0; margin: 0; background: #f4ecf7; border-radius: 8px; overflow: hidden; border: 2px solid #27ae60;">
+        <div id="subTabOffline" class="sub-tab-content" style="width: 100%; padding: 0; margin: 0; background: #f4ecf7; border-radius: 8px; overflow: hidden; border: 2px solid #27ae60;">
     <div style="background: #27ae60; padding: 15px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
         <span style="color: white; font-weight: bold; font-size: 16px;">🔗 CẦU NỐI ĐẨY ĐỀ VÀO PHÒNG THI ONLINE:</span>
         <div style="display: flex; gap: 10px;">
@@ -253,6 +253,12 @@
                 <div class="stat-box" style="flex: 2; border-left: 3px solid #c0392b;"><div>🚨 Câu sai nhiều nhất</div><div class="stat-value" id="statKiller" style="color:#c0392b; font-size: 13px; font-weight: normal; margin-top: 8px; line-height: 1.4; text-align: left;">Đang phân tích...</div></div>
             </div>
             <div id="subTabsDashboard" class="sub-tabs" style="margin-top: 20px;"></div>
+	<div style="margin: 15px 0;">
+    <input type="text" id="liveSearchInput" 
+           onkeyup="xuLyLiveSearch()" 
+           placeholder="🔍 Tìm nhanh theo Số báo danh hoặc Tên..." 
+           style="width: 100%; padding: 12px; border: 2px solid #1a73e8; border-radius: 6px; font-size: 15px; outline: none; box-sizing: border-box;">
+</div>
             <table id="bangDiem">
                 <thead><tr><th style="width:80px;">SBD</th><th>Họ và Tên</th><th>Lớp</th><th>Trạng thái</th><th>Mã đề</th><th style="background:#d4edda;">Tổng Điểm</th><th style="background:#e2eef9;">P. I</th><th style="background:#e2eef9;">P. II</th><th style="background:#e2eef9;">P. III</th></tr></thead>
                 <tbody id="dashBody"><tr><td colspan="9">Chưa có dữ liệu...</td></tr></tbody>
@@ -499,21 +505,68 @@
                 else { document.getElementById('ctrlLog').innerText = `❌ Lỗi: ${data.message}`; } 
             }).catch(e => { document.getElementById('ctrlLog').innerText = `❌ Lỗi mạng: ${e.message}`; }); 
         }
-        function dieuKhienFast(maPhong, trangThai, doiTuong="TatCa", tenDot="", thoiGian=15) { safePost({ action: "set_state", maPhong: maPhong, trangThai: trangThai, doiTuong: doiTuong, tenDotKiemTra: tenDot, thoiGianLamBai: thoiGian }).then(() => fetchRadar()); }
-        function xoaPhongHoanToan(maPhong) { if(!confirm(`XÓA VĨNH VIỄN phòng [${maPhong}]?\nToàn bộ Đề Thi và Điểm Số của phòng này sẽ bị xóa khỏi máy chủ.`)) return; safePost({ action: "delete_room", maPhong: maPhong }).then(() => fetchRadar()); }
-        function fetchRadar() { safeGet("get_all_rooms").then(data => { allRoomsData = data; let html = ''; if(!data || data.length === 0) { html = '<tr><td colspan="6">Chưa có phòng nào</td></tr>'; } else { data.forEach(r => { let sttHtml = r.TrangThai; if(r.TrangThai === "MO_PHONG") sttHtml = "<span style='color:green;font-weight:bold;'>🟢 Đang Thi</span>"; else if(r.TrangThai === "THU_BAI") sttHtml = "<span style='color:red;font-weight:bold;'>🔴 Đã Khóa</span>"; else if(r.TrangThai === "CONG_BO_DIEM") sttHtml = "<span style='color:#3498db;font-weight:bold;'>📊 Công bố Điểm</span>"; else if(r.TrangThai === "XEM_DAP_AN") sttHtml = "<span style='color:#8e44ad;font-weight:bold;'>👁️ Công bố Đ.Án</span>"; let btnHtml = (r.TrangThai === "MO_PHONG") ? `<button style="background:#c0392b; padding:5px; font-size:12px;" onclick="dieuKhienFast('${r.MaPhong}', 'THU_BAI')">Khóa</button>` : `<button style="background:#27ae60; padding:5px; font-size:12px;" onclick="dieuKhienFast('${r.MaPhong}', 'MO_PHONG', '${r.DoiTuong}', '${r.TenDotKiemTra}')">Mở lại</button>`; let btnXoa = `<button style="background:#7f8c8d; padding:5px; font-size:12px;" onclick="xoaPhongHoanToan('${r.MaPhong}')">Xóa Sạch</button>`; html += `<tr><td><b>${r.MaPhong}</b></td><td style="color:#1a73e8;font-weight:bold;">${r.TenDotKiemTra||"-"}</td><td>${r.DoiTuong}</td><td>${r.ThoiGian||15}p</td><td>${sttHtml}</td><td>${btnHtml} ${btnXoa}</td></tr>`; }); } document.getElementById('radarBody').innerHTML = html; }).catch(e => console.log(e)); }
-
-        function fetchDashboard(isAuto = false) { 
-            const maPhong = document.getElementById('dashMaPhong').value.trim(); 
-            if(!maPhong) return; 
-            if(!isAuto) document.getElementById('dashBody').innerHTML = '<tr><td colspan="9">⏳ Đang tải dữ liệu...</td></tr>'; 
-            Promise.all([ safeGet("get_results&room=" + encodeURIComponent(maPhong)), safeGet("get_students") ])
-            .then(values => { duLieuBangDiem = values[0] || []; allStudents = values[1] || []; renderDashboardSubTabs(); renderDashboardTable(); })
-            .catch(e => { if(!isAuto) { alert("Lỗi tải Bảng điểm: " + e.message); console.error(e); } }); 
+        function dieuKhienFast(maPhong, trangThai) { 
+            // Chỉ gửi đúng Lệnh trạng thái. Máy chủ sẽ tự động "nhớ" và giữ nguyên Lớp, Thời gian, Tên đợt gốc.
+            safePost({ action: "set_state", maPhong: maPhong, trangThai: trangThai }).then(() => fetchRadar()); 
         }
+
+        function xoaPhongHoanToan(maPhong) { 
+            if(!confirm(`XÓA VĨNH VIỄN phòng [${maPhong}]?\nToàn bộ Đề Thi và Điểm Số của phòng này sẽ bị xóa khỏi máy chủ.`)) return; 
+            safePost({ action: "delete_room", maPhong: maPhong }).then(() => fetchRadar()); 
+        }
+
+        function fetchRadar() { 
+            safeGet("get_all_rooms").then(data => { 
+                allRoomsData = data; 
+                let html = ''; 
+                if(!data || data.length === 0) { 
+                    html = '<tr><td colspan="6" style="text-align:center;">Chưa có phòng nào đang mở</td></tr>'; 
+                } else { 
+                    data.forEach(r => { 
+                        let sttHtml = r.TrangThai; 
+                        if(r.TrangThai === "MO_PHONG") sttHtml = "<span style='color:green;font-weight:bold;'>🟢 Đang Thi</span>"; 
+                        else if(r.TrangThai === "THU_BAI") sttHtml = "<span style='color:red;font-weight:bold;'>🔴 Đã Khóa</span>"; 
+                        else if(r.TrangThai === "CONG_BO_DIEM") sttHtml = "<span style='color:#3498db;font-weight:bold;'>📊 Công bố Điểm</span>"; 
+                        else if(r.TrangThai === "XEM_DAP_AN") sttHtml = "<span style='color:#8e44ad;font-weight:bold;'>👁️ Công bố Đ.Án</span>"; 
+                        
+                        // Nút bấm đã được tối giản hóa, không còn mang theo thông tin rườm rà gây lỗi nữa
+                        let btnHtml = (r.TrangThai === "MO_PHONG") 
+                            ? `<button style="background:#c0392b; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:12px; cursor:pointer;" onclick="dieuKhienFast('${r.MaPhong}', 'THU_BAI')">Khóa</button>` 
+                            : `<button style="background:#27ae60; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:12px; cursor:pointer;" onclick="dieuKhienFast('${r.MaPhong}', 'MO_PHONG')">Mở lại</button>`; 
+                        
+                        let btnXoa = `<button style="background:#7f8c8d; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:12px; cursor:pointer; margin-left:5px;" onclick="xoaPhongHoanToan('${r.MaPhong}')">Xóa Sạch</button>`; 
+                        
+                        // Tôi đã cập nhật dự phòng thời gian hiển thị mặc định ở đây thành 45 luôn
+                        html += `<tr><td><b>${r.MaPhong}</b></td><td style="color:#1a73e8;font-weight:bold;">${r.TenDotKiemTra||"-"}</td><td>${r.DoiTuong}</td><td>${r.ThoiGian||45}p</td><td>${sttHtml}</td><td>${btnHtml} ${btnXoa}</td></tr>`; 
+                    }); 
+                } 
+                document.getElementById('radarBody').innerHTML = html; 
+            }).catch(e => console.log(e)); 
+        }
+
+        // ĐÃ SỬA: Hàm fetchDashboard đảm bảo chỉ reset ô tìm kiếm khi thao tác thủ công
+        function fetchDashboard(isAuto = false) { 
+            const sInput = document.getElementById('liveSearchInput');
+            if (sInput && !isAuto) sInput.value = ''; 
+
+            const maPhong = document.getElementById('dashMaPhong').value.trim();
+            if(!maPhong) return;
+            if(!isAuto) document.getElementById('dashBody').innerHTML = '<tr><td colspan="9">⏳ Đang tải dữ liệu...</td></tr>';
+            
+            Promise.all([ safeGet("get_results&room=" + encodeURIComponent(maPhong)), safeGet("get_students") ])
+            .then(values => { 
+                duLieuBangDiem = values[0] || []; 
+                allStudents = values[1] || []; 
+                renderDashboardSubTabs(); 
+                renderDashboardTable(); 
+            })
+            .catch(e => { if(!isAuto) { alert("Lỗi tải Bảng điểm: " + e.message); console.error(e); } });
+        }
+
         function renderDashboardSubTabs() { let groups = new Set(); duLieuBangDiem.forEach(hs => { if(hs.Lop) groups.add(hs.Lop); }); let html = `<button class="${currentDashFilter==='TatCa'?'active':''}" onclick="filterDashboard('TatCa')">Tất cả</button>`; groups.forEach(g => { html += `<button class="${currentDashFilter===g?'active':''}" onclick="filterDashboard('${g}')">${g}</button>`; }); document.getElementById('subTabsDashboard').innerHTML = html; }
         function filterDashboard(filter) { currentDashFilter = filter; renderDashboardTable(); }
         
+        // ĐÃ SỬA: Hàm renderDashboardTable đã được dọn dẹp, xóa vòng lặp thừa và chèn logic tìm kiếm chuẩn xác
         function renderDashboardTable() { 
             let statBox = document.getElementById("miniDashboard"); const maPhong = document.getElementById('dashMaPhong').value.trim(); let currentRoom = allRoomsData.find(r => String(r.MaPhong).trim() === maPhong); let defaultLop = currentRoom && currentRoom.DoiTuong !== "TatCa" ? currentRoom.DoiTuong : null; let displayList = []; let targetLop = currentDashFilter !== 'TatCa' ? currentDashFilter : defaultLop; 
             if (targetLop) { 
@@ -532,7 +585,12 @@
             
             statBox.style.display = "flex"; let sum = 0, passed = 0, submittedCount = 0; let failCount = {}; let html = ""; 
             displayList.sort((a, b) => (String(a.MaHS) || '').localeCompare(String(b.MaHS) || '')); 
-            
+
+            // --- ĐỌC TỪ KHÓA TÌM KIẾM ---
+            const sInput = document.getElementById("liveSearchInput");
+            const filter = sInput ? sInput.value.toUpperCase() : "";
+            // ----------------------------
+
             displayList.forEach(hs => { 
                 hs.p1Score = 0; hs.p2Score = 0; hs.p3Score = 0; 
                 if(hs.ChiTiet && hs.Diem !== "-") { 
@@ -548,8 +606,6 @@
                             } 
                             else if(item.phan==="2") { 
                                 let cArr = (item.chon||"").split('-'); 
-                                
-                                // THUẬT TOÁN ĐỒNG BỘ: Chỉ bóc chính xác Đ/S
                                 let dStr = String(item.dung||"").toUpperCase().replace(/[ÐD]/g, 'Đ');
                                 let dArr = dStr.match(/[ĐS]/g) || [];
                                 let match = 0; 
@@ -582,7 +638,14 @@
                 let colorDiem = !isSubmitted ? '#95a5a6' : (parseFloat(total) < 5.0 ? '#c0392b' : '#27ae60'); 
                 let trStyle = isSubmitted && parseFloat(total) < 5.0 ? 'background-color: #fadbd8;' : ''; 
                 let sttHtml = isSubmitted ? '<span style="color:#27ae60;font-weight:bold;">✅ Đã nộp</span>' : '<span style="color:#95a5a6;">Chưa nộp / Đang thi</span>'; 
-                html += `<tr style="${trStyle}"><td><b>${hs.MaHS || '-'}</b></td><td style="text-align:left;"><b>${hs.HoTen}</b></td><td>${hs.Lop}</td><td>${sttHtml}</td><td>${hs.MaDe || '-'}</td><td style="color:${colorDiem}; font-weight:bold; font-size:16px;">${total}</td><td>${isSubmitted ? parseFloat(hs.p1Score) : '-'}</td><td>${isSubmitted ? parseFloat(hs.p2Score) : '-'}</td><td>${isSubmitted ? parseFloat(hs.p3Score) : '-'}</td></tr>`; 
+
+                // --- CHỈ VẼ DÒNG NẾU KHỚP VỚI TỪ KHÓA TÌM KIẾM ---
+                const txtSBD = (hs.MaHS || "").toString().toUpperCase();
+                const txtTen = (hs.HoTen || "").toString().toUpperCase();
+
+                if (filter === "" || txtSBD.indexOf(filter) > -1 || txtTen.indexOf(filter) > -1) {
+                    html += `<tr style="${trStyle}"><td><b>${hs.MaHS || '-'}</b></td><td style="text-align:left;"><b>${hs.HoTen}</b></td><td>${hs.Lop}</td><td>${sttHtml}</td><td>${hs.MaDe || '-'}</td><td style="color:${colorDiem}; font-weight:bold; font-size:16px;">${total}</td><td>${isSubmitted ? parseFloat(hs.p1Score) : '-'}</td><td>${isSubmitted ? parseFloat(hs.p2Score) : '-'}</td><td>${isSubmitted ? parseFloat(hs.p3Score) : '-'}</td></tr>`; 
+                }
             }); 
             
             document.getElementById("statSiSo").innerText = `${submittedCount} / ${displayList.length}`; 
@@ -593,7 +656,7 @@
             Object.keys(failCount).forEach(k => { if(!k.includes("_txt") && failCount[k] > maxFail) { maxFail = failCount[k]; killerQ = failCount[k+"_txt"]; } }); 
             if(maxFail > 0) document.getElementById("statKiller").innerHTML = `<span style="font-size:12px">Câu bị sai nhiều nhất (${maxFail} HS sai):</span><br/>${(killerQ || "").substring(0, 70)}...`; 
             
-            document.getElementById('dashBody').innerHTML = html; 
+            document.getElementById('dashBody').innerHTML = html || '<tr><td colspan="9">Không tìm thấy kết quả phù hợp bộ lọc tìm kiếm.</td></tr>'; 
         }
 
         function xoaDiemPhong() { const maPhong = document.getElementById('dashMaPhong').value.trim(); if(!maPhong) return; if(duLieuBangDiem.length === 0) return; if(!confirm(`XÓA TOÀN BỘ điểm của [${maPhong}]?`)) return; safePost({ action: "delete_room_results", maPhong: maPhong }).then(data => { if(data.status === "success") fetchDashboard(); }); }
@@ -660,55 +723,62 @@
         function filterStudents(filter) { currentStudentFilter = filter; renderSubTabsHS(); renderStudentTable(); }
         function renderStudentTable() { let filtered = allStudents; if(currentStudentFilter !== 'TatCa') { filtered = allStudents.filter(s => s.Lop === currentStudentFilter); } let html = ""; if(filtered.length === 0) html = '<tr><td colspan="5">Không có dữ liệu.</td></tr>'; else { filtered.forEach(hs => { let statusHTML = hs.TrangThai === "DaDoi" ? `<span style="color:green;font-weight:bold;">Đã đổi</span>` : `<span style="color:red;">Mặc định</span>`; html += `<tr><td><b>${hs.MaHS}</b></td><td>${hs.HoTen}</td><td>${hs.Lop}</td><td>${statusHTML}</td><td><button style="background:#e74c3c; padding:5px 10px; border:none; border-radius:4px; color:white; cursor:pointer;" onclick="resetPass('${hs.MaHS}')">Khôi phục</button></td></tr>`; }); } document.getElementById('hsBody').innerHTML = html; }
         function resetPass(maHS) { if(!confirm(`Khôi phục MK ID ${maHS}?`)) return; safePost({ action: "reset_pass", maHS: maHS }).then(data => { if(data.status === "success") fetchStudents(); }); }
-	// --- HÀM TẢI DANH SÁCH PHÒNG TỪ MÁY CHỦ ---
-function taiDanhSachPhong() {
-    let selectBoxTab2 = document.getElementById("ctrlMaPhong");
-    let selectBoxTab3 = document.getElementById("dashMaPhong");
+	
+        // --- HÀM TẢI DANH SÁCH PHÒNG TỪ MÁY CHỦ ---
+        function taiDanhSachPhong() {
+            let selectBoxTab2 = document.getElementById("ctrlMaPhong");
+            let selectBoxTab3 = document.getElementById("dashMaPhong");
 
-    if(selectBoxTab2) selectBoxTab2.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
-    if(selectBoxTab3) selectBoxTab3.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
+            if(selectBoxTab2) selectBoxTab2.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
+            if(selectBoxTab3) selectBoxTab3.innerHTML = '<option value="">⏳ Đang tải danh sách phòng...</option>';
 
-    fetch(APPS_SCRIPT_URL + "?action=getDanhSachPhong")
-        .then(res => res.json())
-        .then(data => {
-            let defaultOpt = '<option value="">-- Chọn Mã Phòng Thi --</option>';
-            if(selectBoxTab2) selectBoxTab2.innerHTML = defaultOpt;
-            if(selectBoxTab3) selectBoxTab3.innerHTML = defaultOpt;
-            
-            if(data.status === "success" && data.danhSachPhong && data.danhSachPhong.length > 0) {
-                // 1. Đổ dữ liệu vào CẢ 2 Ô xổ xuống
-                data.danhSachPhong.forEach(phong => {
-                    let optHtml = `<option value="${phong}">${phong}</option>`;
-                    if(selectBoxTab2) selectBoxTab2.innerHTML += optHtml;
-                    if(selectBoxTab3) selectBoxTab3.innerHTML += optHtml;
-                });
+            fetch(APPS_SCRIPT_URL + "?action=getDanhSachPhong")
+                .then(res => res.json())
+                .then(data => {
+                    let defaultOpt = '<option value="">-- Chọn Mã Phòng Thi --</option>';
+                    if(selectBoxTab2) selectBoxTab2.innerHTML = defaultOpt;
+                    if(selectBoxTab3) selectBoxTab3.innerHTML = defaultOpt;
+                    
+                    if(data.status === "success" && data.danhSachPhong && data.danhSachPhong.length > 0) {
+                        // 1. Đổ dữ liệu vào CẢ 2 Ô xổ xuống
+                        data.danhSachPhong.forEach(phong => {
+                            let optHtml = `<option value="${phong}">${phong}</option>`;
+                            if(selectBoxTab2) selectBoxTab2.innerHTML += optHtml;
+                            if(selectBoxTab3) selectBoxTab3.innerHTML += optHtml;
+                        });
 
-                // 2. KHÔI PHỤC TRÍ NHỚ (CODE MỚI)
-                let phongDaLuu = localStorage.getItem('phongDangXem'); // Lấy tên phòng trong bộ nhớ ra
-                // Kiểm tra xem phòng đó có còn tồn tại trong kho không
-                if (phongDaLuu && data.danhSachPhong.includes(phongDaLuu)) { 
-                    if(selectBoxTab3) {
-                        selectBoxTab3.value = phongDaLuu; // Tự động chọn lại phòng đó
-                        fetchDashboard(); // Tự động kéo điểm về luôn
+                        // 2. KHÔI PHỤC TRÍ NHỚ (CODE MỚI)
+                        let phongDaLuu = localStorage.getItem('phongDangXem'); // Lấy tên phòng trong bộ nhớ ra
+                        // Kiểm tra xem phòng đó có còn tồn tại trong kho không
+                        if (phongDaLuu && data.danhSachPhong.includes(phongDaLuu)) { 
+                            if(selectBoxTab3) {
+                                selectBoxTab3.value = phongDaLuu; // Tự động chọn lại phòng đó
+                                fetchDashboard(); // Tự động kéo điểm về luôn
+                            }
+                        }
+
+                    } else {
+                        let emptyOpt = '<option value="">⚠️ Chưa có phòng thi nào</option>';
+                        if(selectBoxTab2) selectBoxTab2.innerHTML = emptyOpt;
+                        if(selectBoxTab3) selectBoxTab3.innerHTML = emptyOpt;
                     }
-                }
-
-            } else {
-                let emptyOpt = '<option value="">⚠️ Chưa có phòng thi nào</option>';
-                if(selectBoxTab2) selectBoxTab2.innerHTML = emptyOpt;
-                if(selectBoxTab3) selectBoxTab3.innerHTML = emptyOpt;
-            }
-        })
-        .catch(err => {
-            let errorOpt = '<option value="">❌ Lỗi kết nối mạng!</option>';
-            if(selectBoxTab2) selectBoxTab2.innerHTML = errorOpt;
-            if(selectBoxTab3) selectBoxTab3.innerHTML = errorOpt;
-            console.error(err);
-        });
-}
-
-// Tự động gọi hàm này khi vừa mở trang web
-window.addEventListener('load', taiDanhSachPhong);
+                })
+                .catch(err => {
+                    let errorOpt = '<option value="">❌ Lỗi kết nối mạng!</option>';
+                    if(selectBoxTab2) selectBoxTab2.innerHTML = errorOpt;
+                    if(selectBoxTab3) selectBoxTab3.innerHTML = errorOpt;
+                    console.error(err);
+                });
+        }
+        
+        // --- HÀM TÌM KIẾM THẦN TỐC (LIVE SEARCH) CHO TAB 3 ---
+        function xuLyLiveSearch() {
+            // Chỉ gọi hàm này để hệ thống tự lọc dữ liệu khi vẽ bảng
+            renderDashboardTable(); 
+        }
+        
+        // Tự động gọi hàm này khi vừa mở trang web
+        window.addEventListener('load', taiDanhSachPhong);
     </script>
 </body>
 </html>
